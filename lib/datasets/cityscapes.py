@@ -119,6 +119,55 @@ class Cityscapes(BaseDataset):
 
         return image.copy(), label.copy(), np.array(size), name
 
+
+    def mymulti_scale_inference(self, config, model, image, scales=[1], flip=False):
+        stride_h = np.int(self.crop_size[0] * 1.0)
+        stride_w = np.int(self.crop_size[1] * 1.0)
+        for scale in scales:
+            new_img = self.mymulti_scale_aug(image=image,
+                                           rand_scale=scale,
+                                           rand_crop=False,
+                                           align_corners=config.MODEL.ALIGN_CORNERS)
+            height, width = image.shape[2:]
+                
+            if scale <= 1.0:
+                pred = self.inference(config, model, image, flip)
+                pred = pred[:, :, 0:height, 0:width]
+            else:
+                new_h, new_w = new_img.shape[:-1]
+                rows = np.int(np.ceil(1.0 * (new_h - 
+                                self.crop_size[0]) / stride_h)) + 1
+                cols = np.int(np.ceil(1.0 * (new_w - 
+                                self.crop_size[1]) / stride_w)) + 1
+                pred = torch.zeros([1, self.num_classes,
+                                           new_h,new_w]).cuda()
+                count = torch.zeros([1,1, new_h, new_w]).cuda()
+
+                for r in range(rows):
+                    for c in range(cols):
+                        h0 = r * stride_h
+                        w0 = c * stride_w
+                        h1 = min(h0 + self.crop_size[0], new_h)
+                        w1 = min(w0 + self.crop_size[1], new_w)
+                        h0 = max(int(h1 - self.crop_size[0]), 0)
+                        w0 = max(int(w1 - self.crop_size[1]), 0)
+                        crop_img = new_img[h0:h1, w0:w1, :]
+                        crop_img = crop_img.transpose((2, 0, 1))
+                        crop_img = np.expand_dims(crop_img, axis=0)
+                        crop_img = torch.from_numpy(crop_img)
+                        pred = self.inference(config, model, crop_img, flip)
+                        pred[:,:,h0:h1,w0:w1] += pred[:,:, 0:h1-h0, 0:w1-w0]
+                        count[:,:,h0:h1,w0:w1] += 1
+                pred = pred / count
+                pred = pred[:,:,:height,:width]
+
+            pred = F.interpolate(
+                pred, (height, width), 
+                mode='bilinear', align_corners=config.MODEL.ALIGN_CORNERS
+            )
+        return pred
+
+
     def multi_scale_inference(self, config, model, image, scales=[1], flip=False):
         batch, _, ori_height, ori_width = image.size()
         assert batch == 1, "only supporting batchsize 1."
@@ -170,7 +219,7 @@ class Cityscapes(BaseDataset):
             preds = F.interpolate(
                 preds, (ori_height, ori_width), 
                 mode='bilinear', align_corners=config.MODEL.ALIGN_CORNERS
-            )            
+            )
             final_pred += preds
         return final_pred
 
@@ -190,14 +239,13 @@ class Cityscapes(BaseDataset):
                 lab >>= 3
         return palette
 
-    def save_pred(self, preds, sv_path, name):
+    def save_pred(self, pred, sv_path, name):
         palette = self.get_palette(256)
-        preds = np.asarray(np.argmax(preds.cpu(), axis=1), dtype=np.uint8)
-        for i in range(preds.shape[0]):
-            pred = self.convert_label(preds[i], inverse=True)
+        pred = np.asarray(np.argmax(pred.cpu(), axis=1), dtype=np.uint8)
+        for i in range(pred.shape[0]):
+            pred = self.convert_label(pred[i], inverse=True)
             save_img = Image.fromarray(pred)
             save_img.putpalette(palette)
-            save_img.save(os.path.join(sv_path, name[i]+'.png'))
+            save_img.save(os.path.join(sv_path, name+'.png'))
 
-        
         

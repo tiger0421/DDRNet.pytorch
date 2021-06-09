@@ -159,8 +159,40 @@ def validate(config, testloader, model, writer_dict):
     return ave_loss.average(), mean_IoU, IoU_array
 
 
+def myinfer(config, test_dataset, image, model, sv_dir='', sv_pred=False):
+    with torch.no_grad():
+        name = 'test'
+        size = image.size()
+        pred = test_dataset.mymulti_scale_inference(
+            config,
+            model,
+            image,
+            scales=config.TEST.SCALE_LIST,
+            flip=config.TEST.FLIP_TEST)
+
+        if pred.size()[-2] != size[-2] or pred.size()[-1] != size[-1]:
+            pred = F.interpolate(
+                pred, size[-2:],
+                mode='bilinear', align_corners=config.MODEL.ALIGN_CORNERS
+            )
+
+        if sv_pred:
+            sv_path = os.path.join(sv_dir, 'test_results')
+            if not os.path.exists(sv_path):
+                os.mkdir(sv_path)
+            #test_dataset.save_pred2(image, pred, sv_path, name)
+            test_dataset.save_pred(pred, sv_path, name+"result")
+
+
+#        pred = np.asarray(np.argmax(pred.cpu(), axis=1), dtype=np.uint8)
+#        pred = test_dataset.convert_label(pred, inverse=True)
+#        pred = pred.transpose((2, 0, 1))
+#        print(pred.shape)
+
+    return pred
+
+
 def mytestval(config, test_dataset, image, label, model, sv_dir='', sv_pred=False):
-    model.eval()
     confusion_matrix = np.zeros(
         (config.DATASET.NUM_CLASSES, config.DATASET.NUM_CLASSES))
     with torch.no_grad():

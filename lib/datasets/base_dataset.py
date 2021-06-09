@@ -16,7 +16,6 @@ from torch.utils import data
 
 from config import config
 
-
 class BaseDataset(data.Dataset):
     def __init__(self,
                  ignore_label=-1,
@@ -76,6 +75,32 @@ class BaseDataset(data.Dataset):
         y = random.randint(0, new_h - self.crop_size[0])
         image = image[y:y+self.crop_size[0], x:x+self.crop_size[1]]
         label = label[y:y+self.crop_size[0], x:x+self.crop_size[1]]
+
+        return image, label
+
+    def mymulti_scale_aug(self, image, label=None,
+                        rand_scale=1, rand_crop=True, align_corners=False):
+        long_size = np.int(self.base_size * rand_scale + 0.5)
+        h, w = image.shape[2:]
+        if h > w:
+            new_h = long_size
+            new_w = np.int(w * long_size / h + 0.5)
+        else:
+            new_w = long_size
+            new_h = np.int(h * long_size / w + 0.5)
+
+        image = F.interpolate(
+            image, (new_h, new_w),
+            mode='bilinear', align_corners=align_corners
+        )
+        if label is not None:
+            label = cv2.resize(label, (new_w, new_h),
+                               interpolation=cv2.INTER_NEAREST)
+        else:
+            return image
+
+        if rand_crop:
+            image, label = self.rand_crop(image, label)
 
         return image, label
 

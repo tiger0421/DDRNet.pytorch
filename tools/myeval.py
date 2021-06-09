@@ -28,7 +28,7 @@ import models
 import datasets
 from config import config
 from config import update_config
-from core.function import mytestval, test
+from core.function import myinfer, test
 from utils.modelsummary import get_model_summary
 from utils.utils import create_logger, FullModel, speed_test
 
@@ -96,6 +96,7 @@ def main():
 
     gpus = list(config.GPUS)
     model = nn.DataParallel(model, device_ids=gpus).cuda()
+    model.eval()
 
     # prepare data
     test_size = (config.TEST.IMAGE_SIZE[1], config.TEST.IMAGE_SIZE[0])
@@ -126,6 +127,7 @@ def main():
     transform = transforms.Compose([
         transforms.ToTensor(),
     ])
+    start = timeit.default_timer()
     image = transform(image)
     transform = transforms.Compose([
         transforms.ToTensor(),
@@ -134,20 +136,13 @@ def main():
 
     image = image.view(1, 3, 1024, 2048)
 
-    start = timeit.default_timer()
-    mean_IoU, IoU_array, pixel_acc, mean_acc = mytestval(config, 
-                                                        test_dataset, 
-                                                        image, 
-                                                        label,
-                                                        model,
-                                                        sv_pred=True)
+    pred = myinfer(config, 
+                    test_dataset, 
+                    image, 
+                    model,
+                    sv_pred=True)
 
-    msg = 'MeanIU: {: 4.4f}, Pixel_Acc: {: 4.4f}, \
-        Mean_Acc: {: 4.4f}, Class IoU: '.format(mean_IoU, 
-        pixel_acc, mean_acc)
-    logging.info(msg)
-    logging.info(IoU_array)
-
+    #cv2.imwrite("result.png", pred)
     end = timeit.default_timer()
     logger.info('Mins: %lf' % (end-start))
     logger.info('Done')
