@@ -154,6 +154,7 @@ class BaseDataset(data.Dataset):
         img = np.clip(img, 0, 255).astype(np.uint8)
         return img
 
+
     def gen_sample(self, image, label,
                    multi_scale=True, is_flip=True):
         if multi_scale:
@@ -166,6 +167,35 @@ class BaseDataset(data.Dataset):
         label = self.label_transform(label)
 
         image = image.transpose((2, 0, 1))
+
+        if is_flip:
+            flip = np.random.choice(2) * 2 - 1
+            image = image[:, :, ::flip]
+            label = label[:, ::flip]
+
+        if self.downsample_rate != 1:
+            label = cv2.resize(
+                label,
+                None,
+                fx=self.downsample_rate,
+                fy=self.downsample_rate,
+                interpolation=cv2.INTER_NEAREST
+            )
+
+        return image, label
+
+    def mygen_sample(self, image, label,
+                   multi_scale=True, is_flip=True):
+        if multi_scale:
+            rand_scale = 0.5 + random.randint(0, self.scale_factor) / 10.0
+            image, label = self.multi_scale_aug(image, label,
+                                                rand_scale=rand_scale)
+
+        image = self.random_brightness(image)
+        image = self.input_transform(image)
+        label = self.label_transform(label)
+
+        #image = image.transpose((2, 0, 1))
 
         if is_flip:
             flip = np.random.choice(2) * 2 - 1
