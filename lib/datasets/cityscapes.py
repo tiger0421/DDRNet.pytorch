@@ -241,7 +241,7 @@ class Cityscapes(BaseDataset):
 
     def save_pred(self, pred, sv_path, name):
         palette = self.get_palette(256)
-        pred = np.asarray(np.argmax(pred.cpu(), axis=1), dtype=np.uint8)
+        pred = np.asarray(torch.argmax(pred, dim=1).cpu(), dtype=np.uint8)
         for i in range(pred.shape[0]):
             pred = self.convert_label(pred[i], inverse=True)
             save_img = Image.fromarray(pred)
