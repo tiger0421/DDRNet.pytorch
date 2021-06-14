@@ -34,7 +34,7 @@ from utils.utils import create_logger, FullModel, speed_test
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train segmentation network')
-    
+
     parser.add_argument('--cfg',
                         help='experiment configure file name',
                         default="experiments/cityscapes/ddrnet23_slim.yaml",
@@ -120,9 +120,7 @@ def main():
 #        pin_memory=True)
 
     image = cv2.imread('data/test.png', cv2.IMREAD_COLOR)
-    label = cv2.imread('data/test_L.png', cv2.IMREAD_GRAYSCALE)
-    label = test_dataset.convert_label(label)
-    image, label, = test_dataset.mygen_sample(image, label, test_dataset.multi_scale, test_dataset.flip)
+    image = test_dataset.mygen_sample(image, test_dataset.multi_scale, test_dataset.flip)
 
     transform = transforms.Compose([
         transforms.ToTensor(),
@@ -132,7 +130,6 @@ def main():
     transform = transforms.Compose([
         transforms.ToTensor(),
     ])
-    label = transform(label)
 
     image = image.view(1, 3, 1024, 2048)
 
