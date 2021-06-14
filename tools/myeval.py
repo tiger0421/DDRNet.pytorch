@@ -139,11 +139,9 @@ def main():
     pred = myinfer(config, 
                     test_dataset, 
                     image, 
-                    model,
-                    sv_pred=True)
+                    model)
+    pred.save("result.png")
 
-    #cv2.imwrite("result.png", pred)
-    end = timeit.default_timer()
     logger.info('Mins: %lf' % (end-start))
     logger.info('Done')
 

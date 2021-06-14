@@ -248,4 +248,11 @@ class Cityscapes(BaseDataset):
             save_img.putpalette(palette)
             save_img.save(os.path.join(sv_path, name+'.png'))
 
-        
+    def convert_pred_to_color(self, pred):
+        palette = self.get_palette(256)
+        pred = np.asarray(torch.argmax(pred, dim=1).cpu(), dtype=np.uint8)
+        pred = self.convert_label(pred[0], inverse=True)
+        pred_image = Image.fromarray(pred)
+        pred_image.putpalette(palette)
+        return pred_image.convert("RGB")
+
