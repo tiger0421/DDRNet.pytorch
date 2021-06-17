@@ -87,16 +87,12 @@ class DDRNet():
 
         model_state_file = model_trained_path
         logger.info('=> loading model from {}'.format(model_state_file))
-
         pretrained_dict = torch.load(model_state_file)
         if 'state_dict' in pretrained_dict:
             pretrained_dict = pretrained_dict['state_dict']
         model_dict = self.model.state_dict()
         pretrained_dict = {k[6:]: v for k, v in pretrained_dict.items()
                             if k[6:] in model_dict.keys()}
-#        for k, _ in pretrained_dict.items():
-#            logger.info(
-#                '=> loading {} from pretrained model'.format(k))
         model_dict.update(pretrained_dict)
         self.model.load_state_dict(model_dict)
 
@@ -119,8 +115,15 @@ class DDRNet():
 
         self.transform = transforms.Compose([
             transforms.ToTensor(),
+            #transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
         self.bridge = CvBridge()
+        self.image_msg = Image()
+        self.image_msg.height = self.image_height
+        self.image_msg.width = self.image_width
+        self.image_msg.encoding = "rgb8"
+        self.image_msg.is_bigendian = False
+        self.image_msg.step = 3 * self.image_width
         rospy.loginfo("complete loading DDRNet")
 
 
@@ -135,11 +138,9 @@ class DDRNet():
 
             start = time.time()
             image = cv2.resize(image_orig, dsize=(self.image_width, self.image_height))
-            image = self.test_dataset.mygen_sample(image, self.test_dataset.multi_scale, self.test_dataset.flip)
-
+            image = self.test_dataset.input_transform(image)
             image = self.transform(image)
 
-            #image = image.view(1, 3, 1024, 2048)
             image = image.view(1, 3, self.image_height, self.image_width)
 
             pred = myinfer(config, 
@@ -147,15 +148,9 @@ class DDRNet():
                             image, 
                             self.model)
 
-            msg = Image()
-            msg.header.stamp = rospy.Time.now()
-            msg.height = pred.height
-            msg.width = pred.width
-            msg.encoding = "rgb8"
-            msg.is_bigendian = False
-            msg.step = 3 * pred.width
-            msg.data = np.array(pred).tobytes()
-            self.pub.publish(msg)
+            self.image_msg.header.stamp = rospy.Time.now()
+            self.image_msg.data = np.array(pred).tobytes()
+            self.pub.publish(self.image_msg)
 
             try:
                 imageMsg = self.bridge.cv2_to_imgmsg(pred, "bgr8")

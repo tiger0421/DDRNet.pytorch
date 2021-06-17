@@ -215,10 +215,6 @@ class BaseDataset(data.Dataset):
             image = self.mymulti_scale_aug(image, rand_scale=rand_scale)
         image = self.input_transform(image)
 
-        if is_flip:
-            flip = np.random.choice(2) * 2 - 1
-            image = image[:, :, ::flip]
-
         return image
 
     def reduce_zero_label(self, labelmap):
