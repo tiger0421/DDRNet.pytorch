@@ -6,15 +6,7 @@
 # ------------------------------------------------------------------------------
 
 import argparse
-import os
-import pprint
-import shutil
-import sys
-
-import logging
 import time
-from pathlib import Path
-
 import numpy as np
 import cv2
 
@@ -67,12 +59,6 @@ class DDRNet():
         config.MODEL.PRETRAINED = model_pretrained_path
         config.freeze()
 
-        logger, final_output_dir, _ = create_logger(
-            config, args.cfg, 'test')
-
-#        logger.info(pprint.pformat(args))
-#        logger.info(pprint.pformat(config))
-
         # cudnn related setting
         cudnn.benchmark = config.CUDNN.BENCHMARK
         cudnn.deterministic = config.CUDNN.DETERMINISTIC
@@ -86,7 +72,7 @@ class DDRNet():
                      '.get_seg_model')(config)
 
         model_state_file = model_trained_path
-        logger.info('=> loading model from {}'.format(model_state_file))
+        rospy.loginfo('=> loading model from {}'.format(model_state_file))
         pretrained_dict = torch.load(model_state_file)
         if 'state_dict' in pretrained_dict:
             pretrained_dict = pretrained_dict['state_dict']
@@ -115,7 +101,13 @@ class DDRNet():
 
         self.transform = transforms.Compose([
             transforms.ToTensor(),
-            #transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            transforms.Normalize(
+                mean=[0.485, 0.456, 0.406],
+                std=[0.229, 0.224, 0.225],
+            ),
+            transforms.Resize(
+                size = (self.image_height, self.image_width),
+            ),
         ])
         self.bridge = CvBridge()
         self.image_msg = Image()
@@ -131,22 +123,23 @@ class DDRNet():
         self.cnt += 1
         self.cnt %= self.border
         if self.cnt == 0:
+            start = time.time()
             try:
                 image_orig = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
             except CvBridgeError as e:
                 print(e)
 
-            start = time.time()
-            image = cv2.resize(image_orig, dsize=(self.image_width, self.image_height))
-            image = self.test_dataset.input_transform(image)
+            image = cv2.cvtColor(image_orig, cv2.COLOR_BGR2RGB)
             image = self.transform(image)
-
             image = image.view(1, 3, self.image_height, self.image_width)
 
-            pred = myinfer(config, 
-                            self.test_dataset, 
-                            image, 
-                            self.model)
+            pred_raw = self.test_dataset.mymulti_scale_inference(
+                config,
+                self.model,
+                image,
+                scales=config.TEST.SCALE_LIST,
+                flip=config.TEST.FLIP_TEST)
+            pred = self.test_dataset.convert_pred_to_color(pred_raw)
 
             self.image_msg.header.stamp = rospy.Time.now()
             self.image_msg.data = np.array(pred).tobytes()
@@ -159,7 +152,7 @@ class DDRNet():
                 print(e)
 
             end = time.time()
-            rospy.loginfo('Mins: %lf' % (end-start))
+            rospy.loginfo('DDRNet took: %lf [sec]' % (end-start))
 
 
 if __name__ == '__main__':
