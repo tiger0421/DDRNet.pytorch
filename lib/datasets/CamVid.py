@@ -15,7 +15,7 @@ from torch.nn import functional as F
 
 from .base_dataset import BaseDataset
 
-class Camvid(BaseDataset):
+class CamVid(BaseDataset):
     def __init__(self, 
                  root, 
                  list_path, 
@@ -31,7 +31,7 @@ class Camvid(BaseDataset):
                  mean=[0.485, 0.456, 0.406], 
                  std=[0.229, 0.224, 0.225]):
 
-        super(Camvid, self).__init__(ignore_label, base_size,
+        super(CamVid, self).__init__(ignore_label, base_size,
                 crop_size, downsample_rate, scale_factor, mean, std,)
 
         self.root = root
@@ -48,7 +48,7 @@ class Camvid(BaseDataset):
             self.files = self.files[:num_samples]
 
         self.label_mapping = {-1: ignore_label, 0: ignore_label} 
-        for s in range(1:33):
+        for s in range(1, 33):
             self.label_mapping[s] = s
         self.class_weights = torch.FloatTensor([0.8373, 0.918, 0.866, 1.0345, 
                                         1.0166, 0.9969, 0.9754, 1.0489,
