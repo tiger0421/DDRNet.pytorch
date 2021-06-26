@@ -25,7 +25,8 @@ services:
       - QT_X11_NO_MITSHM=1
     volumes:
       - ~/share:/root/share:rw
-      - ~/Documents/docker/DDRNet.pytorch:/root/DDRNet_ws/src/DDRNet/:rw
+      - ~/workspace/DDRNet.pytorch:/root/DDRNet_ws/src/DDRNet:rw
+      - /dataset:/dataset:ro
     volumes_from:
       - xwindow
     command: /bin/bash
