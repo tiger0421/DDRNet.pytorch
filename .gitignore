@@ -2,10 +2,9 @@
 .idea/
 __pycache__/
 *.py[co]
-data/cityscapes/
 log/
 output/
 pretrained_models
 detail-api/
-data/list
 test_results/
+data

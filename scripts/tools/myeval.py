@@ -135,7 +135,8 @@ def main():
                     test_dataset, 
                     image, 
                     model)
-    #pred.save("result.png")
+    end = timeit.default_timer()
+    pred.save("result.png")
 
     end = timeit.default_timer()
     logger.info('Mins: %lf' % (end-start))
