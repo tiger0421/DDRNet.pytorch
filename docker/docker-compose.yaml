@@ -26,6 +26,7 @@ services:
     volumes:
       - ~/share:/root/share:rw
       - ~/workspace/DDRNet.pytorch:/root/DDRNet:rw
+      - /dataset:/dataset:ro
     volumes_from:
       - xwindow
     command: /bin/bash
