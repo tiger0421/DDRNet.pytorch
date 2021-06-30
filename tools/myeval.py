@@ -119,7 +119,7 @@ def main():
 #        num_workers=config.WORKERS,
 #        pin_memory=True)
 
-    image = cv2.imread('data/test.png', cv2.IMREAD_COLOR)
+    image = cv2.imread('data/camvid.png', cv2.IMREAD_COLOR)
     image = test_dataset.mygen_sample(image, test_dataset.multi_scale, test_dataset.flip)
 
     transform = transforms.Compose([
@@ -131,12 +131,13 @@ def main():
         transforms.ToTensor(),
     ])
 
-    image = image.view(1, 3, 1024, 2048)
+    image = image.view(1, 3, 360, 480)
 
     pred = myinfer(config, 
                     test_dataset, 
                     image, 
                     model)
+    end = timeit.default_timer()
     pred.save("result.png")
 
     logger.info('Mins: %lf' % (end-start))

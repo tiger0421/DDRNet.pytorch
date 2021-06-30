@@ -1,1 +1,1 @@
-python tools/myeval.py --cfg experiments/cityscapes/ddrnet23_slim2.yaml
+python tools/myeval.py --cfg experiments/CamVid/ddrnet23_slim.yaml
