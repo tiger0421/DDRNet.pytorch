@@ -8,4 +8,5 @@ pretrained_models
 scripts/
 detail-api/
 test_results/
-data
+data/CamVid
+data/cityscapes

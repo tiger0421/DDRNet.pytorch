@@ -138,7 +138,7 @@ class CamVid(BaseDataset):
 
         label_rgb = cv2.imread(os.path.join(self.root,'CamVid',item["label"]),
                            cv2.IMREAD_COLOR)
-        label = np.zeros((label.shape[0], label.shape[1]))
+        label = np.zeros((label_rgb.shape[0], label_rgb.shape[1]))
         # convert rgb to label number
         for i, v in enumerate(self.color_map.values()):
             label[np.all(label_rgb == np.array(v), axis=2)] = i
