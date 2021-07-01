@@ -1,6 +1,6 @@
 import cv2
+import os
 import numpy as np
-import time
 
 color_map = {
     "Animal"              : (64, 128, 64  ), 
@@ -37,18 +37,18 @@ color_map = {
     "Wall"                : (64, 192, 0   ), 
 }
 
-img = cv2.imread('data/camvid-anot.png', cv2.IMREAD_COLOR)
-img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-#img = cv2.imread('data/camvid-anot.png', cv2.IMREAD_GLAYSCALE)
-result = np.zeros((img.shape[0], img.shape[1]))
+img_path = "/dataset/CamVid/trainannot_rgb"
+target_path = "/dataset/CamVid/trainannot_label"
+files = os.listdir(img_path)
+img_names = [f for f in files if os.path.isfile(os.path.join(img_path, f))]
 
-start = time.time()
-for i, v in enumerate(color_map.values()):
-    result[np.all(img == np.array(v), axis=2)] = i
-    if np.any(np.all(img==np.array(v), axis=2)):
-        print(i, list(color_map.items())[i])
+for name in img_names:
+    img = cv2.imread(os.path.join(img_path, name), cv2.IMREAD_COLOR)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    result = np.zeros((img.shape[0], img.shape[1]))
 
-print(time.time()-start)
+    for i, v in enumerate(color_map.values()):
+        result[np.all(img == np.array(v), axis=2)] = i
 
-result = np.array(result, dtype=np.uint8)
-cv2.imwrite("result_label.png", result)
+    result = np.array(result, dtype=np.uint8)
+    cv2.imwrite(os.path.join(target_path, name), result)
