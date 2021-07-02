@@ -7,4 +7,5 @@ output/
 pretrained_models
 detail-api/
 test_results/
-data
+data/CamVid
+data/cityscapes

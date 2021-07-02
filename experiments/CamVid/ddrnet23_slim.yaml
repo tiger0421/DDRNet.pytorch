@@ -11,9 +11,9 @@ PRINT_FREQ: 10
 DATASET:
   DATASET: CamVid
   ROOT: data/
-  TEST_SET: 'CamVid/val.txt'
-  TRAIN_SET: 'CamVid/train.txt'
-  NUM_CLASSES: 12
+  TEST_SET: 'list/CamVid/val.txt'
+  TRAIN_SET: 'list/CamVid/train.txt'
+  NUM_CLASSES: 32
 MODEL:
   NAME: ddrnet_23_slim
   NUM_OUTPUTS: 2
@@ -29,7 +29,7 @@ TRAIN:
   - 480
   - 360
   BASE_SIZE: 480
-  BATCH_SIZE_PER_GPU: 24
+  BATCH_SIZE_PER_GPU: 16
   SHUFFLE: true
   BEGIN_EPOCH: 0
   END_EPOCH: 484
