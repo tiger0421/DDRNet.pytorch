@@ -50,11 +50,16 @@ class CamVid(BaseDataset):
         self.label_mapping = {-1: ignore_label, 0: ignore_label} 
         for s in range(1, 33):
             self.label_mapping[s] = s
-        self.class_weights = torch.FloatTensor([0.8373, 0.918, 0.866, 1.0345, 
-                                        1.0166, 0.9969, 0.9754, 1.0489,
-                                        0.8786, 1.0023, 0.9539, 0.9843, 
-                                        1.1116, 0.9037, 1.0865, 1.0955, 
-                                        1.0865, 1.1529, 1.0507]).cuda()
+        self.class_weights = torch.FloatTensor([
+                                        0.00, 0.42, 0.30, 0.10,
+                                        20.79, 4.15, 0.02, 0.01,
+                                        1.04, 0.87, 1.55, 0.07,
+                                        0.54, 0.00, 0.28, 0.37,
+                                        0.56, 25.98, 0.28, 6.69,
+                                        0.17, 18.04, 0.53, 0.01,
+                                        0.33, 0.00, 10.76, 0.65,
+                                        0.02, 0.94, 2.81, 1.72,
+                                        ]).cuda()
         self.color_map = {
             "Animal"              : (64, 128, 64  ), 
             "Archway"             : (192, 0, 128  ), 
@@ -142,7 +147,6 @@ class CamVid(BaseDataset):
         # convert rgb to label number
         for i, v in enumerate(self.color_map.values()):
             label[np.all(label_rgb == np.array(v), axis=2)] = i
-        #label = self.convert_label(label)
 
         image, label = self.gen_sample(image, label, 
                                 self.multi_scale, self.flip)
