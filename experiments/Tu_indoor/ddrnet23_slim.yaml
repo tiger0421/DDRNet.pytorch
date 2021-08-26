@@ -13,7 +13,7 @@ DATASET:
   ROOT: data/
   TEST_SET: 'list/Tu_indoor/val.txt'
   TRAIN_SET: 'list/Tu_indoor/train.txt'
-  NUM_CLASSES: 32
+  NUM_CLASSES: 8
 MODEL:
   NAME: ddrnet_23_slim
   NUM_OUTPUTS: 2
@@ -26,10 +26,10 @@ LOSS:
   BALANCE_WEIGHTS: [1, 0.4]
 TRAIN:
   IMAGE_SIZE:
-  - 3840
   - 1920
-  BASE_SIZE: 1920
-  BATCH_SIZE_PER_GPU: 8
+  - 1920
+  BASE_SIZE: 3840
+  BATCH_SIZE_PER_GPU: 2
   SHUFFLE: true
   BEGIN_EPOCH: 0
   END_EPOCH: 484
@@ -48,8 +48,8 @@ TEST:
   IMAGE_SIZE:
   - 3840
   - 1920
-  BASE_SIZE: 1920
-  BATCH_SIZE_PER_GPU: 4
+  BASE_SIZE: 3840
+  BATCH_SIZE_PER_GPU: 2
   FLIP_TEST: false
   MULTI_SCALE: false
   SCALE_LIST: [1]
