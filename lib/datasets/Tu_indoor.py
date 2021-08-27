@@ -253,9 +253,18 @@ class Tu_indoor(BaseDataset):
             save_img.putpalette(palette)
             save_img.save(os.path.join(sv_path, name[i]+'.png'))
 
-
     def convert_pred_to_color(self, pred):
-        palette = self.get_palette(256)
+        class_colors = np.array([
+                                [0, 0, 0],
+                                [192, 0, 0],
+                                [128, 64, 128],
+                                [0, 0, 128],
+                                [0, 64, 64],
+                                [128, 128, 192],
+                                [128, 0, 64],
+                                [128, 128, 128],
+                                ])
+        palette = np.fliplr(class_colors).reshape(-1).tolist()
         pred = np.asarray(torch.argmax(pred, dim=1).cpu(), dtype=np.uint8)
         pred = self.convert_label(pred[0], inverse=True)
         pred_image = Image.fromarray(pred)
