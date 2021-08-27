@@ -55,14 +55,14 @@ class Tu_indoor(BaseDataset):
                                         ]).cuda()
         # Class_name : (B, G, R)
         self.color_map = {
-            "Corridor_floor" : (0, 128, 192  ),
-            "Obstacle"       : (128, 128, 192),
-            "Pedestrian"     : (0, 64, 64    ),
-            "Room_floor"     : (192, 0, 0    ),
-            "Robot"          : (64, 0, 128   ),
-            "Root"           : (128, 128, 128),
             "Void"           : (0, 0, 0      ),
+            "Room_floor"     : (192, 0, 0    ),
+            "Corridor_floor" : (128, 64, 128 ),
             "Wall"           : (0, 0, 128    ),
+            "Pedestrian"     : (0, 64, 64    ),
+            "Obstacle"       : (128, 128, 192),
+            "Robot"          : (128, 0, 64   ),
+            "Roof"           : (128, 128, 128),
         }
 
 
