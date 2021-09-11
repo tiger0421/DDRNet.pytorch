@@ -12,7 +12,7 @@ services:
       context: .
       dockerfile: Dockerfile
     shm_size: '8gb'
-    image: ddrnet/pytorch:1.7.0-cuda11.0-cudnn8-runtime
+    image: ddrnet/pytorch:1.7.0-cuda11.2.2-cudnn8-runtime
     container_name: ddr
     tty: true
     runtime: nvidia
