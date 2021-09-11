@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.0-devel-ubuntu20.04
+FROM nvidia/cuda:11.2.2-cudnn8-runtime-ubuntu20.04
 
 USER root
 ENV DEBIAN_FRONTEND=noninteractive
@@ -32,6 +32,7 @@ WORKDIR /root
 RUN curl https://raw.githubusercontent.com/chenjun2hao/DDRNet.pytorch/main/requirements.txt > requirements.txt && \
     sed -i -e 's/opencv-python==3.4.1.15/opencv-python==3.4.8.29/g' ./requirements.txt && \
     pip3 install -r requirements.txt && \
+    pip3 install seaborn && \
     rm requirements.txt
 RUN ln -s /usr/bin/python3 /usr/bin/python 
 
@@ -47,3 +48,4 @@ RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu focal main" > /etc/apt/s
     apt clean && \
     rm -rf /var/lib/apt/lists/*
 
+RUN echo source /opt/ros/noetic/setup.bash >> /root/.bashrc
