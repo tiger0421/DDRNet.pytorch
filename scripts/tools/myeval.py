@@ -118,9 +118,7 @@ def main():
 #        num_workers=config.WORKERS,
 #        pin_memory=True)
 
-    image = cv2.imread('data/test.png', cv2.IMREAD_COLOR)
-    start = timeit.default_timer()
-    image = cv2.resize(image, dsize=(config.TEST.IMAGE_SIZE[0], config.TEST.IMAGE_SIZE[1]))
+    image = cv2.imread('data/Tu_indoor/train/aisle01_dir/aisle01_img_000063.jpg', cv2.IMREAD_COLOR)
     image = test_dataset.mygen_sample(image, test_dataset.multi_scale, test_dataset.flip)
 
     transform = transforms.Compose([
@@ -128,7 +126,6 @@ def main():
     ])
     image = transform(image)
 
-    #image = image.view(1, 3, 1024, 2048)
     image = image.view(1, 3, config.TEST.IMAGE_SIZE[1], config.TEST.IMAGE_SIZE[0])
 
     pred = myinfer(config, 
