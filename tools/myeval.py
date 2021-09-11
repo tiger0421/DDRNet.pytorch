@@ -119,8 +119,7 @@ def main():
 #        num_workers=config.WORKERS,
 #        pin_memory=True)
 
-#    image = cv2.imread('data/Tu_indoor/train/aisle01_dir/aisle01_img_000063.jpg', cv2.IMREAD_COLOR)
-    image = cv2.imread('data/Tu_indoor/train/aisle09_img_000016.jpg', cv2.IMREAD_COLOR)
+    image = cv2.imread('data/Tu_indoor/train/aisle01_dir/aisle01_img_000063.jpg', cv2.IMREAD_COLOR)
     image = test_dataset.mygen_sample(image, test_dataset.multi_scale, test_dataset.flip)
 
     transform = transforms.Compose([
