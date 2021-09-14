@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="ddr_net" type="ddrnet_node.py" name="ddr_net" output="screen">
+        <remap from="image_raw" to="videofile/image_raw"/>
+        <param name="segmentation_hz" type="double" value="5"/>
+        <param name="camera_fps" type="double" value="30"/>
+        <param name="config_path" type="str" value="$(find ddr_net)/experiments/cityscapes/ddrnet23_slim2.yaml"/>
+        <param name="model_pretrained_path" type="str" value="$(find ddr_net)/pretrained_models/DDRNet23s_imagenet.pth"/>
+        <param name="model_trained_path" type="str" value="$(find ddr_net)/output/cityscapes/ddrnet23_slim/best.pth"/>
+        <param name="image_height" type="int" value="1024"/>
+        <param name="image_width" type="int" value="2048"/>
+    </node>
+</launch>
