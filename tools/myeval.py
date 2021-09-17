@@ -16,26 +16,28 @@ import timeit
 from pathlib import Path
 
 import numpy as np
+import cv2
 
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
+from torchvision import transforms
 
 import _init_paths
 import models
 import datasets
 from config import config
 from config import update_config
-from core.function import testval, test
+from core.function import myinfer, test
 from utils.modelsummary import get_model_summary
 from utils.utils import create_logger, FullModel, speed_test
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train segmentation network')
-    
+
     parser.add_argument('--cfg',
                         help='experiment configure file name',
-                        default="experiments/map/map_hrnet_ocr_w18_small_v2_512x1024_sgd_lr1e-2_wd5e-4_bs_12_epoch484.yaml",
+                        default="experiments/cityscapes/ddrnet23_slim.yaml",
                         type=str)
     parser.add_argument('opts',
                         help="Modify config options using the command-line",
@@ -44,7 +46,6 @@ def parse_args():
 
     args = parser.parse_args()
     update_config(config, args)
-
     return args
 
 def main():
@@ -68,18 +69,18 @@ def main():
     model = eval('models.'+config.MODEL.NAME +
                  '.get_seg_model')(config)
 
-    dump_input = torch.rand(
-        (1, 3, config.TRAIN.IMAGE_SIZE[1], config.TRAIN.IMAGE_SIZE[0])
-    )
-    logger.info(get_model_summary(model.cuda(), dump_input.cuda()))
+    # dump_input = torch.rand(
+    #     (1, 3, config.TRAIN.IMAGE_SIZE[1], config.TRAIN.IMAGE_SIZE[0])
+    # )
+    # logger.info(get_model_summary(model.cuda(), dump_input.cuda()))
 
     if config.TEST.MODEL_FILE:
         model_state_file = config.TEST.MODEL_FILE
     else:
-        # model_state_file = os.path.join(final_output_dir, 'best_0.7589.pth')
-        model_state_file = os.path.join(final_output_dir, 'best.pth')    
+        model_state_file = os.path.join(final_output_dir, 'best.pth')      
+        # model_state_file = os.path.join(final_output_dir, 'final_state.pth')      
     logger.info('=> loading model from {}'.format(model_state_file))
-        
+
     pretrained_dict = torch.load(model_state_file)
     if 'state_dict' in pretrained_dict:
         pretrained_dict = pretrained_dict['state_dict']
@@ -94,6 +95,7 @@ def main():
 
     gpus = list(config.GPUS)
     model = nn.DataParallel(model, device_ids=gpus).cuda()
+    model.eval()
 
     # prepare data
     test_size = (config.TEST.IMAGE_SIZE[1], config.TEST.IMAGE_SIZE[0])
@@ -109,23 +111,32 @@ def main():
                         crop_size=test_size,
                         downsample_rate=1)
 
-    testloader = torch.utils.data.DataLoader(
-        test_dataset,
-        batch_size=1,
-        shuffle=False,
-        num_workers=config.WORKERS,
-        pin_memory=True)
-    
-    start = timeit.default_timer()
+#    testloader = torch.utils.data.DataLoader(
+#        test_dataset,
+#        batch_size=1,
+#        shuffle=False,
+#        num_workers=config.WORKERS,
+#        pin_memory=True)
 
-    test(config, 
-            test_dataset, 
-            testloader, 
-            model,
-            sv_dir=final_output_dir+'/test_result')
+    image = cv2.imread('data/Tu_indoor/train/aisle01_dir/aisle01_img_000063.jpg', cv2.IMREAD_COLOR)
+    image = test_dataset.mygen_sample(image, test_dataset.multi_scale, test_dataset.flip)
+
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+    ])
+    image = transform(image)
+
+    image = image.view(1, 3, config.TEST.IMAGE_SIZE[1], config.TEST.IMAGE_SIZE[0])
+
+    pred = myinfer(config, 
+                    test_dataset, 
+                    image, 
+                    model)
+    end = timeit.default_timer()
+    pred.save("result.png")
 
     end = timeit.default_timer()
-    logger.info('Mins: %d' % np.int((end-start)/60))
+    logger.info('Mins: %lf' % (end-start))
     logger.info('Done')
 
 

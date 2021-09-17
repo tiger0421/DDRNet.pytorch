@@ -159,6 +159,94 @@ def validate(config, testloader, model, writer_dict):
     return ave_loss.average(), mean_IoU, IoU_array
 
 
+def myinfer(config, test_dataset, image, model):
+    with torch.no_grad():
+        size = image.size()
+        pred = test_dataset.mymulti_scale_inference(
+            config,
+            model,
+            image,
+            scales=config.TEST.SCALE_LIST,
+            flip=config.TEST.FLIP_TEST)
+
+        if pred.size()[-2] != size[-2] or pred.size()[-1] != size[-1]:
+            pred = F.interpolate(
+                pred, size[-2:],
+                mode='bilinear', align_corners=config.MODEL.ALIGN_CORNERS
+            )
+        pred_image = test_dataset.convert_pred_to_color(pred)
+    return pred_image
+
+
+def mytestval(config, test_dataset, image, label, model, sv_dir='', sv_pred=False):
+    confusion_matrix = np.zeros(
+        (config.DATASET.NUM_CLASSES, config.DATASET.NUM_CLASSES))
+    with torch.no_grad():
+        name = 'test'
+        size = label.size()
+        pred = test_dataset.multi_scale_inference(
+            config,
+            model,
+            image,
+            scales=config.TEST.SCALE_LIST,
+            flip=config.TEST.FLIP_TEST)
+
+
+        if pred.size()[-2] != size[-2] or pred.size()[-1] != size[-1]:
+            pred = F.interpolate(
+                pred, size[-2:],
+                mode='bilinear', align_corners=config.MODEL.ALIGN_CORNERS
+            )
+        
+        # # crf used for post-processing
+        # postprocessor = DenseCRF(   )
+        # # image
+        # mean=[0.485, 0.456, 0.406],
+        # std=[0.229, 0.224, 0.225]
+        # timage = image.squeeze(0)
+        # timage = timage.numpy().copy().transpose((1,2,0))
+        # timage *= std
+        # timage += mean
+        # timage *= 255.0
+        # timage = timage.astype(np.uint8)
+        # # pred
+        # tprob = torch.softmax(pred, dim=1)[0].cpu().numpy()
+        # pred = postprocessor(np.array(timage, dtype=np.uint8), tprob)    
+        # pred = torch.from_numpy(pred).unsqueeze(0)
+        
+        confusion_matrix += get_confusion_matrix(
+            label,
+            pred,
+            size,
+            config.DATASET.NUM_CLASSES,
+            config.TRAIN.IGNORE_LABEL)
+
+        if sv_pred:
+            sv_path = os.path.join(sv_dir, 'test_results')
+            if not os.path.exists(sv_path):
+                os.mkdir(sv_path)
+            #test_dataset.save_pred2(image, pred, sv_path, name)
+            test_dataset.save_pred(pred, sv_path, name+"result")
+
+        pos = confusion_matrix.sum(1)
+        res = confusion_matrix.sum(0)
+        tp = np.diag(confusion_matrix)
+        IoU_array = (tp / np.maximum(1.0, pos + res - tp))
+        mean_IoU = IoU_array.mean()
+        logging.info('mIoU: %.4f' % (mean_IoU))
+
+    pos = confusion_matrix.sum(1)
+    res = confusion_matrix.sum(0)
+    tp = np.diag(confusion_matrix)
+    pixel_acc = tp.sum()/pos.sum()
+    mean_acc = (tp/np.maximum(1.0, pos)).mean()
+    IoU_array = (tp / np.maximum(1.0, pos + res - tp))
+    mean_IoU = IoU_array.mean()
+
+    return mean_IoU, IoU_array, pixel_acc, mean_acc
+
+
+
 def testval(config, test_dataset, testloader, model,
             sv_dir='', sv_pred=False):
     model.eval()
@@ -212,7 +300,7 @@ def testval(config, test_dataset, testloader, model,
                 sv_path = os.path.join(sv_dir, 'test_results')
                 if not os.path.exists(sv_path):
                     os.mkdir(sv_path)
-                test_dataset.save_pred2(image, pred, sv_path, name)
+                test_dataset.save_pred(pred, sv_path, name)
 
             if index % 100 == 0:
                 logging.info('processing: %d images' % index)

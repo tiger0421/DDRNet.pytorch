@@ -20,7 +20,7 @@ class CamVid(BaseDataset):
                  root, 
                  list_path, 
                  num_samples=None, 
-                 num_classes=19,
+                 num_classes=32,
                  multi_scale=True, 
                  flip=True, 
                  ignore_label=0, 
@@ -50,12 +50,52 @@ class CamVid(BaseDataset):
         self.label_mapping = {-1: ignore_label, 0: ignore_label} 
         for s in range(1, 33):
             self.label_mapping[s] = s
-        self.class_weights = torch.FloatTensor([0.8373, 0.918, 0.866, 1.0345, 
-                                        1.0166, 0.9969, 0.9754, 1.0489,
-                                        0.8786, 1.0023, 0.9539, 0.9843, 
-                                        1.1116, 0.9037, 1.0865, 1.0955, 
-                                        1.0865, 1.1529, 1.0507]).cuda()
-    
+        self.class_weights = torch.FloatTensor([
+                                        0.00, 0.42, 0.30, 0.10,
+                                        20.79, 4.15, 0.02, 0.01,
+                                        1.04, 0.87, 1.55, 0.07,
+                                        0.54, 0.00, 0.28, 0.37,
+                                        0.56, 25.98, 0.28, 6.69,
+                                        0.17, 18.04, 0.53, 0.01,
+                                        0.33, 0.00, 10.76, 0.65,
+                                        0.02, 0.94, 2.81, 1.72,
+                                        ]).cuda()
+        self.color_map = {
+            "Animal"              : (64, 128, 64  ), 
+            "Archway"             : (192, 0, 128  ), 
+            "Bicyclist"           : (0, 128, 192  ), 
+            "Bridge"              : (0, 128, 64   ), 
+            "Building"            : (128, 0, 0    ), 
+            "Car"                 : (64, 0, 128   ), 
+            "CartLuggagePram"     : (64, 0, 192   ), 
+            "Child"               : (192, 128, 64 ), 
+            "Column_Pole"         : (192, 192, 128), 
+            "Fence"               : (64, 64, 128  ), 
+            "LaneMkgsDriv"        : (128, 0, 192  ), 
+            "LaneMkgsNonDriv"     : (192, 0, 64   ), 
+            "Misc_Text"           : (128, 128, 64 ), 
+            "MotorcycleScooter"   : (192, 0, 192  ), 
+            "OtherMoving"         : (128, 64, 64  ), 
+            "ParkingBlock"        : (64, 192, 128 ), 
+            "Pedestrian"          : (64, 64, 0    ), 
+            "Road"                : (128, 64, 128 ), 
+            "RoadShoulder"        : (128, 128, 192), 
+            "Sidewalk"            : (0, 0, 192    ), 
+            "SignSymbol"          : (192, 128, 128), 
+            "Sky"                 : (128, 128, 128), 
+            "SUVPickupTruck"      : (64, 128, 192 ), 
+            "TrafficCone"         : (0, 0, 64     ), 
+            "TrafficLight"        : (0, 64, 64    ), 
+            "Train"               : (192, 64, 128 ), 
+            "Tree"                : (128, 128, 0  ), 
+            "Truck_Bus"           : (192, 128, 192), 
+            "Tunnel"              : (64, 0, 64    ), 
+            "VegetationMisc"      : (192, 192, 0  ), 
+            "Void"                : (0, 0, 0      ), 
+            "Wall"                : (64, 192, 0   ), 
+        }
+
+
     def read_files(self):
         files = []
         if 'test' in self.list_path:
@@ -101,14 +141,67 @@ class CamVid(BaseDataset):
 
             return image.copy(), np.array(size), name
 
-        label = cv2.imread(os.path.join(self.root,'CamVid',item["label"]),
-                           cv2.IMREAD_GRAYSCALE)
-        label = self.convert_label(label)
+        label_rgb = cv2.imread(os.path.join(self.root,'CamVid',item["label"]),
+                           cv2.IMREAD_COLOR)
+        label_rgb = cv2.resize(label_rgb, (size[1], size[0]), interpolation=cv2.INTER_NEAREST)
+        label = np.zeros((label_rgb.shape[0], label_rgb.shape[1]))
+        # convert rgb to label number
+        for i, v in enumerate(self.color_map.values()):
+            label[np.all(label_rgb == np.array(v), axis=2)] = i
 
         image, label = self.gen_sample(image, label, 
                                 self.multi_scale, self.flip)
 
         return image.copy(), label.copy(), np.array(size), name
+
+    def mymulti_scale_inference(self, config, model, image, scales=[1], flip=False):
+        stride_h = np.int(self.crop_size[0] * 1.0)
+        stride_w = np.int(self.crop_size[1] * 1.0)
+        for scale in scales:
+            new_img = self.mymulti_scale_aug(image=image,
+                                           rand_scale=scale,
+                                           rand_crop=False,
+                                           align_corners=config.MODEL.ALIGN_CORNERS)
+            height, width = image.shape[2:]
+
+            if scale <= 1.0:
+                pred = self.inference(config, model, image, flip)
+                pred = pred[:, :, 0:height, 0:width]
+            else:
+                new_h, new_w = new_img.shape[:-1]
+                rows = np.int(np.ceil(1.0 * (new_h - 
+                                self.crop_size[0]) / stride_h)) + 1
+                cols = np.int(np.ceil(1.0 * (new_w - 
+                                self.crop_size[1]) / stride_w)) + 1
+                pred = torch.zeros([1, self.num_classes,
+                                           new_h,new_w]).cuda()
+                count = torch.zeros([1,1, new_h, new_w]).cuda()
+
+                for r in range(rows):
+                    for c in range(cols):
+                        h0 = r * stride_h
+                        w0 = c * stride_w
+                        h1 = min(h0 + self.crop_size[0], new_h)
+                        w1 = min(w0 + self.crop_size[1], new_w)
+                        h0 = max(int(h1 - self.crop_size[0]), 0)
+                        w0 = max(int(w1 - self.crop_size[1]), 0)
+                        crop_img = new_img[h0:h1, w0:w1, :]
+                        crop_img = crop_img.transpose((2, 0, 1))
+                        crop_img = np.expand_dims(crop_img, axis=0)
+                        crop_img = torch.from_numpy(crop_img)
+                        pred = self.inference(config, model, crop_img, flip)
+                        pred[:,:,h0:h1,w0:w1] += pred[:,:, 0:h1-h0, 0:w1-w0]
+                        count[:,:,h0:h1,w0:w1] += 1
+                pred = pred / count
+                pred = pred[:,:,:height,:width]
+
+            pred = F.interpolate(
+                pred, (height, width), 
+                mode='bilinear', align_corners=config.MODEL.ALIGN_CORNERS
+            )
+        return pred
+
+
 
     def multi_scale_inference(self, config, model, image, scales=[1], flip=False):
         batch, _, ori_height, ori_width = image.size()
@@ -191,4 +284,11 @@ class CamVid(BaseDataset):
             save_img.save(os.path.join(sv_path, name[i]+'.png'))
 
         
-        
+    def convert_pred_to_color(self, pred):
+        palette = self.get_palette(256)
+        pred = np.asarray(torch.argmax(pred, dim=1).cpu(), dtype=np.uint8)
+        pred = self.convert_label(pred[0], inverse=True)
+        pred_image = Image.fromarray(pred)
+        pred_image.putpalette(palette)
+        return pred_image.convert("RGB")
+
