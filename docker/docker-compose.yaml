@@ -1,4 +1,4 @@
-version: '2.3'
+version: '3'
 
 services:
   xwindow:
@@ -12,7 +12,8 @@ services:
       context: .
       dockerfile: Dockerfile
     shm_size: '8gb'
-    image: ddrnet/pytorch:1.7.0-cuda11.0-cudnn8-runtime
+    image: ddrnet/pytorch:1.7.0-cuda11.2.2-cudnn8-runtime
+    network_mode: "host"
     container_name: ddr
     tty: true
     runtime: nvidia
@@ -25,7 +26,7 @@ services:
       - QT_X11_NO_MITSHM=1
     volumes:
       - ~/share:/root/share:rw
-      - ~/workspace/DDRNet.pytorch:/root/DDRNet:rw
+      - ~/workspace/DDRNet.pytorch:/root/DDRNet_ws/src/DDRNet:rw
       - /dataset:/dataset:ro
     volumes_from:
       - xwindow
