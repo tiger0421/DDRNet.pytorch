@@ -9,9 +9,7 @@ RUN apt update && \
         curl \
         wget \
         vim \
-        tmux \
-        sudo \
-        gosu \
+        build-essential \
         libgeos-dev \
         libopencv-dev \
         python3 \
